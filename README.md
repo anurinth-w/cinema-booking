@@ -1,3 +1,4 @@
+![CI](https://github.com/anurinth-w/cinema-booking/actions/workflows/ci.yml/badge.svg)
 # 🎬 Cinema Ticket Booking System
 
 A real-time cinema seat booking system built with Go, Vue 3, MongoDB, Redis, and RabbitMQ.
