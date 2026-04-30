@@ -7,34 +7,7 @@ Supports concurrent seat locking with zero double-booking guarantee.
 
 ## 1. System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Browser (Vue 3)                       │
-│         REST API calls          WebSocket (real-time)        │
-└───────────────┬─────────────────────────┬───────────────────┘
-                │ HTTP /api/*             │ ws:/ws/{showtimeId}
-                ▼                         ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    Go / Gin Backend                           │
-│  ┌──────────────┐ ┌─────────────┐ ┌──────────────────────┐  │
-│  │ Auth MW      │ │ Booking Svc │ │ WebSocket Hub        │  │
-│  │ Firebase JWT │ │ Lock + Book │ │ Broadcast seat state │  │
-│  └──────────────┘ └──────┬──────┘ └──────────────────────┘  │
-└─────────────────────────┬┼─────────────────────────────────-─┘
-          ┌───────────────┼┘
-          │               │
-   ┌──────▼──────┐  ┌─────▼─────┐  ┌──────────────┐
-   │   MongoDB   │  │   Redis   │  │  RabbitMQ    │
-   │ Users       │  │ Seat Lock │  │ booking_     │
-   │ Showtimes   │  │ TTL 5min  │  │ events queue │
-   │ Bookings    │  │ Keyspace  │  └──────┬───────┘
-   │ AuditLogs   │  │ Notify    │         │
-   └─────────────┘  └───────────┘  ┌──────▼───────┐
-                                    │  Consumer    │
-                                    │  Worker      │
-                                    │  Audit + Log │
-                                    └──────────────┘
-```
+![System Architecture](doc/Cinema_diagram.png)
 
 ---
 
@@ -55,41 +28,7 @@ Supports concurrent seat locking with zero double-booking guarantee.
 
 ## 3. Booking Flow (Step by Step)
 
-```
-User                  Backend               Redis              MongoDB         RabbitMQ
- │                      │                     │                   │               │
- │── click seat ──────► │                     │                   │               │
- │                      │── SETNX             │                   │               │
- │                      │   "seat_lock:       │                   │               │
- │                      │    {showtime}:      │                   │               │
- │                      │    {seat}"          │                   │               │
- │                      │   EX 300 ─────────► │                   │               │
- │                      │◄── OK (or FAIL) ────│                   │               │
- │                      │                     │                   │               │
- │                      │── UPDATE seat.status = LOCKED ─────────►│               │
- │                      │── broadcast WS "seat_update: LOCKED" ──►│ (all clients) │
- │◄── 200 locked ───────│                     │                   │               │
- │                      │                     │                   │               │
- │  [5 min countdown]   │                     │                   │               │
- │                      │                     │                   │               │
- │── confirm payment ──►│                     │                   │               │
- │                      │── Lua script:       │                   │               │
- │                      │   GET key == uid?   │                   │               │
- │                      │   → DEL key ───────►│                   │               │
- │                      │                     │                   │               │
- │                      │── INSERT booking ──────────────────────►│               │
- │                      │── UPDATE seat = BOOKED ─────────────────►               │
- │                      │── broadcast WS "seat_update: BOOKED"                    │
- │                      │── publish "booking.completed" ─────────────────────────►│
- │◄── 200 booking ──────│                     │                   │               │
- │                      │                     │                   │               │
- │  [if no payment]     │                     │                   │               │
- │                      │     TTL expires ───►│                   │               │
- │                      │◄── keyspace notify ─│                   │               │
- │                      │── UPDATE seat = AVAILABLE ─────────────►│               │
- │                      │── broadcast WS "seat_update: AVAILABLE"                 │
- │                      │── publish "booking.timeout" ───────────────────────────►│
-```
+![Booking Flow](doc/Cinema_flow.png)
 
 ---
 
