@@ -172,3 +172,13 @@ db.users.updateOne(
 | WebSocket without auth | Seat state is public info (AVAILABLE/LOCKED/BOOKED). No sensitive data sent over WS. Booking actions still require JWT on REST endpoints. |
 | No Redis Cluster | Single-node Redis is sufficient. For true HA, use Redis Cluster or Sentinel — lock logic stays the same. |
 | Firebase for Auth | Eliminates OAuth implementation complexity. Trade-off is vendor dependency. |
+
+---
+
+## 8. CI/CD
+
+GitHub Actions automatically runs unit tests on every push to main branch.
+
+- **Test framework**: Go testing package
+- **Coverage**: Distributed lock logic — seat locking, Lua atomic unlock, wrong owner rejection
+- **Trigger**: Push to main / Pull Request
