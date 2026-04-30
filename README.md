@@ -117,7 +117,7 @@ Why RabbitMQ over Redis Pub-Sub:
 
 ```bash
 # 1. Clone the repo
-git clone <repo-url>
+git clone https://github.com/anurinth-w/cinema-booking
 cd cinema-booking
 
 # 2. Copy env files
